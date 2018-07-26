@@ -90,6 +90,7 @@ lazy val commonsSchemas    = "ch.epfl.bluebrain.nexus" %% "commons-schemas"     
 lazy val commonsService    = "ch.epfl.bluebrain.nexus" %% "commons-service"      % commonsVersion
 lazy val commonsTest       = "ch.epfl.bluebrain.nexus" %% "commons-test"         % commonsVersion
 lazy val elasticClient     = "ch.epfl.bluebrain.nexus" %% "elastic-client"       % commonsVersion
+lazy val forwardClient     = "hbp.kg.nexus"            %% "forward-client"       % "1.0.0"
 lazy val elasticEmbed      = "ch.epfl.bluebrain.nexus" %% "elastic-server-embed" % commonsVersion
 lazy val shaclValidator    = "ch.epfl.bluebrain.nexus" %% "shacl-validator"      % commonsVersion
 lazy val sourcingAkka      = "ch.epfl.bluebrain.nexus" %% "sourcing-akka"        % commonsVersion
@@ -213,9 +214,36 @@ lazy val elastic = project
     Test / parallelExecution := false // workaround for jena initialization
   )
 
+lazy val forward = project
+  .in(file("modules/forward"))
+  .dependsOn(core)
+  .settings(common)
+  .settings(
+    name       := "kg-forward",
+    moduleName := "kg-forward",
+    libraryDependencies ++= Seq(
+      akkaHttp,
+      akkaHttpCirce,
+      akkaStream,
+      circeCore,
+      circeParser,
+      commonsIAM,
+      forwardClient,
+      journalCore,
+      sourcingCore,
+      akkaTestkit  % Test,
+      asm          % Test,
+      commonsTest  % Test,
+      scalaTest    % Test,
+      sourcingMem  % Test
+    ),
+    Test / fork              := true,
+    Test / parallelExecution := false // workaround for jena initialization
+  )
+
 lazy val service = project
   .in(file("modules/service"))
-  .dependsOn(core % "test->test;compile->compile", sparql, elastic, docs)
+  .dependsOn(core % "test->test;compile->compile", sparql, elastic, forward, docs)
   .enablePlugins(BuildInfoPlugin, ServicePackagingPlugin)
   .settings(common, buildInfoSettings)
   .settings(
@@ -237,6 +265,7 @@ lazy val service = project
       commonsIAM,
       commonsKamon,
       commonsService,
+      forwardClient,
       commonsTest,
       logbackClassic,
       metricsCore, // for cassandra client, or fails at runtime
@@ -306,7 +335,7 @@ lazy val root = project
     name       := "kg",
     moduleName := "kg"
   )
-  .aggregate(docs, core, sparql, elastic, service, testsBlazegraph, testsElastic, schemas)
+  .aggregate(docs, core, sparql, elastic, forward, service, testsBlazegraph, testsElastic, schemas)
 
 /* ********************************************************
  ******************** Grouped Settings ********************
@@ -337,7 +366,8 @@ inThisBuild(
       Developer("bogdanromanx", "Bogdan Roman", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/")),
       Developer("hygt", "Henry Genet", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/")),
       Developer("umbreak", "Didac Montero Mendez", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/")),
-      Developer("wwajerowicz", "Wojtek Wajerowicz", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/"))
+      Developer("wwajerowicz", "Wojtek Wajerowicz", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/")),
+      Developer("rdiana", "Remi Diana", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/"))
     ),
     // These are the sbt-release-early settings to configure
     releaseEarlyWith              := BintrayPublisher,

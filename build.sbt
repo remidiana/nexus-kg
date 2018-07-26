@@ -91,6 +91,156 @@ lazy val topQuadrantShacl     = "ch.epfl.bluebrain.nexus" %% "shacl-topquadrant-
 lazy val kg = project
   .in(file("."))
   .settings(testSettings, buildInfoSettings)
+
+// Nexus dependencies
+lazy val forwardClient     = "hbp.kg.nexus"            %% "forward-client"       % "1.0.0"
+
+lazy val docs = project
+  .in(file("docs"))
+  .enablePlugins(ParadoxPlugin)
+  .settings(common)
+  .settings(
+    name                         := "kg-docs",
+    moduleName                   := "kg-docs",
+    paradoxTheme                 := Some(builtinParadoxTheme("generic")),
+    paradoxProperties in Compile ++= Map("extref.service.base_url" -> "../"),
+    target in (Compile, paradox) := (resourceManaged in Compile).value / "docs",
+    resourceGenerators in Compile += {
+      (paradox in Compile).map { parent =>
+        (parent ** "*").get
+      }.taskValue
+    }
+  )
+
+lazy val schemas = project
+  .in(file("modules/kg-schemas"))
+  .enablePlugins(WorkbenchPlugin)
+  .disablePlugins(ScapegoatSbtPlugin, DocumentationPlugin)
+  .settings(common)
+  .settings(
+    name                := "kg-schemas",
+    moduleName          := "kg-schemas",
+    libraryDependencies += commonsSchemas
+  )
+
+lazy val core = project
+  .in(file("modules/core"))
+  .dependsOn(schemas)
+  .settings(common)
+  .settings(
+    name       := "kg-core",
+    moduleName := "kg-core",
+    libraryDependencies ++= Seq(
+      akkaClusterSharding,
+      commonsIAM,
+      commonsQueryTypes,
+      circeCore,
+      circeOptics,
+      circeParser,
+      jenaArq,
+      jenaQueryBuilder,
+      journalCore,
+      shaclValidator,
+      sourcingCore,
+      sourcingMem     % Test,
+      commonsTest     % Test,
+      scalaTest       % Test,
+      akkaHttpTestkit % Test,
+      akkaTestkit     % Test
+    ),
+    Test / fork              := true,
+    Test / parallelExecution := false // workaround for jena initialization
+  )
+
+lazy val sparql = project
+  .in(file("modules/sparql"))
+  .dependsOn(core)
+  .settings(common)
+  .settings(
+    name       := "kg-sparql",
+    moduleName := "kg-sparql",
+    libraryDependencies ++= Seq(
+      akkaHttp,
+      akkaHttpCirce,
+      akkaStream,
+      circeCore,
+      circeParser,
+      journalCore,
+      commonsIAM,
+      sourcingCore,
+      sparqlClient,
+      akkaSlf4j          % Test,
+      akkaTestkit        % Test,
+      blazegraph         % Test,
+      commonsTest        % Test,
+      jacksonAnnotations % Test,
+      jacksonCore        % Test,
+      jacksonDatabind    % Test,
+      scalaTest          % Test,
+      sourcingMem        % Test
+    ),
+    Test / fork              := true,
+    Test / parallelExecution := false // workaround for jena initialization
+  )
+
+lazy val elastic = project
+  .in(file("modules/elastic"))
+  .dependsOn(core)
+  .settings(common)
+  .settings(
+    name       := "kg-elastic",
+    moduleName := "kg-elastic",
+    libraryDependencies ++= Seq(
+      akkaHttp,
+      akkaHttpCirce,
+      akkaStream,
+      circeCore,
+      circeParser,
+      commonsIAM,
+      elasticClient,
+      journalCore,
+      sourcingCore,
+      akkaTestkit  % Test,
+      asm          % Test,
+      commonsTest  % Test,
+      elasticEmbed % Test,
+      scalaTest    % Test,
+      sourcingMem  % Test
+    ),
+    Test / fork              := true,
+    Test / parallelExecution := false // workaround for jena initialization
+  )
+
+lazy val forward = project
+  .in(file("modules/forward"))
+  .dependsOn(core)
+  .settings(common)
+  .settings(
+    name       := "kg-forward",
+    moduleName := "kg-forward",
+    libraryDependencies ++= Seq(
+      akkaHttp,
+      akkaHttpCirce,
+      akkaStream,
+      circeCore,
+      circeParser,
+      commonsIAM,
+      forwardClient,
+      journalCore,
+      sourcingCore,
+      akkaTestkit  % Test,
+      asm          % Test,
+      commonsTest  % Test,
+      scalaTest    % Test,
+      sourcingMem  % Test
+    ),
+    Test / fork              := true,
+    Test / parallelExecution := false // workaround for jena initialization
+  )
+
+lazy val service = project
+  .in(file("modules/service"))
+  .dependsOn(core % "test->test;compile->compile", sparql, elastic, forward, docs)
   .enablePlugins(BuildInfoPlugin, ServicePackagingPlugin)
   .settings(
     name       := "kg",
@@ -116,6 +266,7 @@ lazy val kg = project
       circeCore,
       elasticClient,
       journalCore,
+      forwardClient,
       logbackClassic,
       monixTail,
       pureconfig,
@@ -152,7 +303,8 @@ inThisBuild(
       Developer("bogdanromanx", "Bogdan Roman", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/")),
       Developer("hygt", "Henry Genet", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/")),
       Developer("umbreak", "Didac Montero Mendez", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/")),
-      Developer("wwajerowicz", "Wojtek Wajerowicz", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/"))
+      Developer("wwajerowicz", "Wojtek Wajerowicz", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/")),
+      Developer("rdiana", "Remi Diana", "noreply@epfl.ch", url("https://bluebrain.epfl.ch/"))
     ),
     // These are the sbt-release-early settings to configure
     releaseEarlyWith              := BintrayPublisher,

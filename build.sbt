@@ -105,6 +105,7 @@ lazy val docs = project
   .settings(
     name                         := "kg-docs",
     moduleName                   := "kg-docs",
+    version    := "0.9.15p",
     paradoxTheme                 := Some(builtinParadoxTheme("generic")),
     paradoxProperties in Compile ++= Map("extref.service.base_url" -> "../"),
     target in (Compile, paradox) := (resourceManaged in Compile).value / "docs",
@@ -123,6 +124,7 @@ lazy val schemas = project
   .settings(
     name                := "kg-schemas",
     moduleName          := "kg-schemas",
+    version    := "0.9.15p",
     libraryDependencies += commonsSchemas
   )
 
@@ -133,6 +135,7 @@ lazy val core = project
   .settings(
     name       := "kg-core",
     moduleName := "kg-core",
+    version    := "0.9.15p",
     libraryDependencies ++= Seq(
       akkaClusterSharding,
       commonsIAM,
@@ -162,6 +165,7 @@ lazy val sparql = project
   .settings(
     name       := "kg-sparql",
     moduleName := "kg-sparql",
+    version    := "0.9.15p",
     libraryDependencies ++= Seq(
       akkaHttp,
       akkaHttpCirce,
@@ -193,6 +197,7 @@ lazy val elastic = project
   .settings(
     name       := "kg-elastic",
     moduleName := "kg-elastic",
+    version    := "0.9.15p",
     libraryDependencies ++= Seq(
       akkaHttp,
       akkaHttpCirce,
@@ -221,6 +226,7 @@ lazy val forward = project
   .settings(
     name       := "kg-forward",
     moduleName := "kg-forward",
+    version    := "0.9.15p",
     libraryDependencies ++= Seq(
       akkaHttp,
       akkaHttpCirce,
@@ -249,6 +255,7 @@ lazy val service = project
   .settings(
     name                  := "kg-service",
     moduleName            := "kg-service",
+    version    := "0.9.15p",
     packageName in Docker := "kg",
     coverageFailOnMinimum := false,
     libraryDependencies ++= Seq(
@@ -291,6 +298,7 @@ lazy val testsBlazegraph = project
   .settings(
     name       := "kg-tests-blazegraph",
     moduleName := "kg-tests-blazegraph",
+    version    := "0.9.15p",
     libraryDependencies ++= Seq(
       cassandraLauncher % Test,
       commonsTest       % Test
@@ -306,6 +314,7 @@ lazy val testsElastic = project
   .settings(
     name       := "kg-tests-elastic",
     moduleName := "kg-tests-elastic",
+    version    := "0.9.15p",
     libraryDependencies ++= Seq(
       elasticSearch,
       elasticSearchNettyClient,
@@ -333,7 +342,8 @@ lazy val root = project
   .settings(common, noPublish)
   .settings(
     name       := "kg",
-    moduleName := "kg"
+    moduleName := "kg",
+    version    := "0.9.15p"
   )
   .aggregate(docs, core, sparql, elastic, forward, service, testsBlazegraph, testsElastic, schemas)
 
@@ -372,7 +382,14 @@ inThisBuild(
     // These are the sbt-release-early settings to configure
     releaseEarlyWith              := BintrayPublisher,
     releaseEarlyNoGpg             := true,
-    releaseEarlyEnableSyncToMaven := false
+    releaseEarlyEnableSyncToMaven := false,
+    version                       := "0.9.15p"
   ))
 
 addCommandAlias("review", ";clean;scalafmtCheck;scalafmtSbtCheck;coverage;scapegoat;test;coverageReport;coverageAggregate;doc")
+
+mainClass in Compile := Some("ch.epfl.bluebrain.nexus.kg.service.Main")
+dockerBaseImage       := "openjdk:jre-alpine"
+enablePlugins(JavaAppPackaging)
+enablePlugins(DockerPlugin)
+enablePlugins(AshScriptPlugin)
